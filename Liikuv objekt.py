@@ -1,12 +1,14 @@
 import pygame
 import sys
 import random
+import os
+
 
 pygame.init()
 
 
 lBlue = (153, 204, 255)
-red = [255, 0, 0]
+red = (255, 0, 0)
 
 
 screenX, screenY = 640, 480
@@ -14,31 +16,40 @@ screen = pygame.display.set_mode([screenX, screenY])
 pygame.display.set_caption("Liikuvad mustad ruudud")
 
 
-ruut = pygame.image.load("ruut.png")
-ruuttransform = pygame.transform.scale(ruut, (50, 50))
+def load_image(filename):
+    if os.path.exists(filename):
+        return pygame.transform.scale(pygame.image.load(filename), (50, 50))
+    else:
+        print(f"Error: {filename} not found!")
+        pygame.quit()
+        sys.exit()
 
-mustruut = pygame.image.load("mustruut.png")
-mustruuttransform = pygame.transform.scale(mustruut, (50, 50))
+
+ruut = load_image("ruut.png")
+mustruut = load_image("mustruut.png")
 
 
 posX, posY = 100, 100
 speed = 5
 
+# Font
+font = pygame.font.Font(None, 36)
 
-
+# Loome mustad ruudud
 num_mustad_ruudud = 5
-mustad_ruudud = []
-for _ in range(num_mustad_ruudud):
-    mustad_ruudud.append({
-        "x": random.randint(0, screenX - 50),
-        "y": random.randint(0, screenY - 50),
-        "dx": random.choice([-3, 3]),
-        "dy": random.choice([-3, 3])
-    })
+mustad_ruudud = [
+    {"x": random.randint(0, screenX - 50), "y": random.randint(0, screenY - 50),
+     "dx": random.choice([-2, 2]), "dy": random.choice([-2, 2])}
+    for _ in range(num_mustad_ruudud)
+]
+
+
+clock = pygame.time.Clock()
 
 gameover = False
 while not gameover:
     screen.fill(lBlue)
+
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -46,52 +57,45 @@ while not gameover:
 
 
     keys = pygame.key.get_pressed()
-    if keys[pygame.K_LEFT]:
+    if keys[pygame.K_LEFT] and posX > 0:
         posX -= speed
-    if keys[pygame.K_RIGHT]:
+    if keys[pygame.K_RIGHT] and posX < screenX - 50:
         posX += speed
-    if keys[pygame.K_UP]:
+    if keys[pygame.K_UP] and posY > 0:
         posY -= speed
-    if keys[pygame.K_DOWN]:
+    if keys[pygame.K_DOWN] and posY < screenY - 50:
         posY += speed
 
 
-    for ruut in mustad_ruudud:
-        ruut["x"] += ruut["dx"]
-        ruut["y"] += ruut["dy"]
+    for ruut_data in mustad_ruudud:
+        ruut_data["x"] += ruut_data["dx"]
+        ruut_data["y"] += ruut_data["dy"]
 
 
-        if ruut["x"] <= 0 or ruut["x"] >= screenX - 50:
-            ruut["dx"] *= -1
-        if ruut["y"] <= 0 or ruut["y"] >= screenY - 50:
-            ruut["dy"] *= -1
+        if ruut_data["x"] <= 0 or ruut_data["x"] >= screenX - 50:
+            ruut_data["dx"] *= -1
+        if ruut_data["y"] <= 0 or ruut_data["y"] >= screenY - 50:
+            ruut_data["dy"] *= -1
 
 
-    screen.blit(ruuttransform, (posX, posY))
-    for ruut in mustad_ruudud:
-        screen.blit(mustruuttransform, (ruut["x"], ruut["y"]))
-
-def check_collision(ruutx, ruuty, mustruutx, mustruuty):
-    if abs(ruutx - mustruutx) < 45 and abs(ruuty - mustruuty) < 55:
-        global ruut_x_direction
-        global ruut_y_direction
-        global mustruut_x_direction
-        global mustruut_y_direction
-        ruut_x_direction = 0
-        ruut_y_direction = 0
-        mustruut_x_direction = 0
-        mustruut_y_direction = 0
-        game_over()
+    screen.blit(ruut, (posX, posY))
+    for ruut_data in mustad_ruudud:
+        screen.blit(mustruut, (ruut_data["x"], ruut_data["y"]))
 
 
-def game_over():
-    display_game_over = font.render("mäng läbi said surma", True,red)
-    screen.blit(display_game_over, (70, 300))
+    for ruut_data in mustad_ruudud:
+        if pygame.Rect(posX, posY, 50, 50).colliderect(pygame.Rect(ruut_data["x"], ruut_data["y"], 50, 50)):
+            gameover = True
+            screen.fill(lBlue)
+            game_over_text = font.render("Mäng läbi, said surma", True, red)
+            screen.blit(game_over_text, (70, 300))
+            pygame.display.flip()
+            pygame.time.delay(2000)
+            break
 
 
-check_collision(ruut.centerx, ruut.centery, mustruut.centerx, mustruut.centery)
     pygame.display.flip()
-    pygame.time.delay(30)
+    clock.tick(30)
 
 pygame.quit()
 sys.exit()
